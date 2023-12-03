@@ -1,3 +1,3 @@
 # ByteQuant
 
-An autonomous protfolio management and trading engine
+An autonomous Portfolio Optimisation and trading engine

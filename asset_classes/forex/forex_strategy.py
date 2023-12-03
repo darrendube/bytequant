@@ -1,0 +1,2 @@
+class ForexStrategy:
+    pass

@@ -1,2 +1,0 @@
-class EquitiesStrategy:
-    pass

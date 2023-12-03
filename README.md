@@ -1,3 +1,3 @@
 # ByteQuant
 
-An autonomous Portfolio Optimisation and trading engine
+An autonomous portfolio optimisation and trading engine in Python

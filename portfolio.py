@@ -4,6 +4,6 @@ class Portfolio:
         self.positions = positions
         self.cash = 0
 
-    def update_portfolio(self, trades):
+    def update(self, trades):
         pass
         # Given a list of trades, update the positions

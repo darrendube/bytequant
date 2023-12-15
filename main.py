@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import pickle
 import os
-from portfolio import Portfolio
+from portfolio_management.portfolio import Portfolio
 from portfolio_management.portfolio_manager import PortfolioManager
 from asset_classes.equities.equities_strategy import EquitiesStrategy
 from asset_classes.fixed_income.fixed_income_strategy import FixedIncomeStrategy
@@ -26,14 +26,18 @@ else:
 while trading:
 
     # get portfolio manager to decide which assets to buy/sell and return instructions in dict format
+    #    TODO: instruction format can be perhaps a target value of holdings of each asset (and maybe each risk category in each asset type)
+    #    TODO; can include cash buffer to acocunt for slippage. instructions can adjust buffer if it gets too low/high
     portfolio_changes:dict = portfolio_manager.evaluate()
 
-    # get strategies to convert instructions to orders
+    # get strategies to convert instructions to orders (to fulfil the increase/reduction in their respective assets as outlined by instructions)
+    
     orders = EquitiesStrategy(portfolio).get_trades(portfolio_changes['equities']) + \
              FixedIncomeStrategy(portfolio).get_trades(portfolio_changes['fixed income']) + \
              ForexStrategy(portfolio).get_trades(portfolio_changes['forex'])
     
     # get trader to execute orders (after cost optimisation) and return successful trades
+    #  TODO: cost optimisation must ensure relative 
     filled_orders = trader.execute(orders)
 
     # update portfolio with successful trades

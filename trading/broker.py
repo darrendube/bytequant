@@ -5,7 +5,7 @@ from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import GetAssetsRequest, MarketOrderRequest, LimitOrderRequest, GetOrdersRequest
 from alpaca.trading.enums import AssetClass, OrderSide, TimeInForce, QueryOrderStatus
 from alpaca.trading.stream import TradingStream
-from order import Order
+from .order import Order
 from datetime import datetime
 
 

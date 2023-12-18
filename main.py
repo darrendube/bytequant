@@ -9,12 +9,14 @@ from asset_classes.equities.equities_strategy import EquitiesStrategy
 from asset_classes.fixed_income.fixed_income_strategy import FixedIncomeStrategy
 from asset_classes.forex.forex_strategy import ForexStrategy
 from trading.trader import Trader
+from trading.broker import AlpacaAPI
 
 trading = True
 
 portfolio: Portfolio
 portfolio_manager = PortfolioManager()
 trader = Trader()
+broker = AlpacaAPI('PKBHECRAUKBSKI23DYTW', 'LDWQZ3y8Goa27QWDFgla4TbbYgLNn2n7dtbNvQjO')
 
 if os.path.exists('data/portfolio.pf'):
     with open('data/portfolio.pf','rb') as pf:
@@ -32,9 +34,9 @@ while trading:
 
     # get strategies to convert instructions to orders (to fulfil the increase/reduction in their respective assets as outlined by instructions)
     
-    orders = EquitiesStrategy(portfolio).get_trades(portfolio_changes['equities']) + \
-             FixedIncomeStrategy(portfolio).get_trades(portfolio_changes['fixed income']) + \
-             ForexStrategy(portfolio).get_trades(portfolio_changes['forex'])
+    orders = EquitiesStrategy(portfolio, broker).get_trades(portfolio_changes['equities']) + \
+             FixedIncomeStrategy(portfolio, broker).get_trades(portfolio_changes['fixed income']) + \
+             ForexStrategy(portfolio, broker).get_trades(portfolio_changes['forex'])
     
     # get trader to execute orders (after cost optimisation) and return successful trades
     #  TODO: cost optimisation must ensure relative 

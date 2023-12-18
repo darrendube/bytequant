@@ -5,8 +5,8 @@ class Portfolio:
         self.cash = 0
         self.value = None
 
-    def update_positions(self, trades):
-        '''Given a list of trades, updates the positions'''
+    def update_positions(self, trades, cash):
+        '''Given a list of trades, updates the positions. also pass in the new cash level'''
         pass
        
 

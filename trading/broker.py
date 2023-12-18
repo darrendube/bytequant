@@ -1,18 +1,17 @@
 from alpaca.data.historical import StockHistoricalDataClient
-from alpaca.data.requests import StockLatestQuoteRequest
+from alpaca.data.requests import StockLatestQuoteRequest, StockBarsRequest
+from alpaca.data.timeframe import TimeFrame
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import GetAssetsRequest, MarketOrderRequest, LimitOrderRequest, GetOrdersRequest
 from alpaca.trading.enums import AssetClass, OrderSide, TimeInForce, QueryOrderStatus
+from alpaca.trading.stream import TradingStream
 from order import Order
-import datetime
-
-# TODO: continue reading https://alpaca.markets/sdks/python/trading.html and create functions for getting all assets and submitting orders
+from datetime import datetime
 
 
 class Broker:
     '''
     Each Broker object represents a different broker used when trading. 
-    
     '''
     def __init__(self, api_key, api_secret):
         self.api_key  = api_key
@@ -21,14 +20,30 @@ class Broker:
 class AlpacaAPI(Broker):
     def __init__(self, api_key, api_secret):
         super().__init__(api_key, api_secret)
-        self.client = StockHistoricalDataClient(self.api_key, self.api_secret)
+        self.data_client = StockHistoricalDataClient(self.api_key, self.api_secret)
         self.trading_client = TradingClient(self.api_key, self.api_secret, paper=True)
 
     def get_last_price(self, symbol:str):
         multisymbol_request_params = StockLatestQuoteRequest(symbol_or_symbols=[symbol])
-        latest_multisymbol_quotes = self.client.get_stock_latest_quote(multisymbol_request_params)
+        latest_multisymbol_quotes = self.data_client.get_stock_latest_quote(multisymbol_request_params)
         return latest_multisymbol_quotes[symbol].ask_price
     
+    def get_historical_bar_data(self, symbols:list, start:datetime, end:datetime, tf='day'):
+        if tf.lower()=='minute': timeframe=TimeFrame.Minute
+        elif tf.lower()=='hour': timeframe=TimeFrame.Hour
+        elif tf.lower()=='week': timeframe=TimeFrame.Week
+        elif tf.lower()=='month': timeframe=TimeFrame.Month
+        else: timeframe = TimeFrame.Day
+        
+        request_params = StockBarsRequest(
+            symbol_or_symbols=symbols,
+            timeframe=timeframe,
+            start = start,
+            end=end
+        )
+
+        return self.data_client.get_stock_bars(request_params).df
+
     def get_account_details(self):
         return self.trading_client.get_account()
     
@@ -68,18 +83,41 @@ class AlpacaAPI(Broker):
 
             return self.trading_client.submit_order(order_data=order_data)
         
-    def get_orders(self, status=None, limit=None, after:datetime=None, until:datetime=None, side=None):
+    def get_orders(self, status=None, limit:int=None, after:datetime=None, until:datetime=None, side=None):
         args_dict = {}
         if status is not None:
             if status=='all':
                 args_dict['status'] = QueryOrderStatus.ALL
             elif status=='open':
                 args_dict['status'] = QueryOrderStatus.OPEN
-            elif status=='closed'
+            elif status=='closed':
                 args_dict['status'] = QueryOrderStatus.CLOSED
-        request_params = GetOrdersRequest(
+        if limit is not None:
+            args_dict['limit'] = limit
+        if type(after) == datetime: # also implies after is not None
+            args_dict['after'] = after
+        if type(until) == datetime:
+            args_dict['until'] = until
+        if side is not None:
+            if side == 'buy': args_dict['side'] = OrderSide.BUY
+            elif side == 'sell': args_dict['side'] = OrderSide.SELL
 
-        )
 
+        request_params = GetOrdersRequest(**args_dict)
+        return self.trading_client.get_orders(filter=request_params)
+
+    def cancel_all_orders(self):
+        return self.trading_client.cancel_orders()
+    
+    def get_all_positions(self):
+        return self.trading_client.get_all_positions()
+    
+    def close_all_positions(self):
+        return self.trading_client.close_all_positions()
+    
+    def start_trading_stream(self, update_handler):
+        '''update_handler should be an async function with a single argument (the data received). it can then handle the data any way it wants'''
+        self.trading_stream = TradingStream(self.api_key, self.api_secret, paper=True)
+        self.trading_stream.run()
 
 

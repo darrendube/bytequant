@@ -14,7 +14,7 @@ from trading.broker import AlpacaAPI
 trading = True
 
 portfolio: Portfolio
-portfolio_manager = PortfolioManager()
+portfolio_manager = PortfolioManager(assets=['equities'])
 trader = Trader()
 broker = AlpacaAPI('PKBHECRAUKBSKI23DYTW', 'LDWQZ3y8Goa27QWDFgla4TbbYgLNn2n7dtbNvQjO')
 
@@ -30,13 +30,13 @@ while trading:
     # get portfolio manager to decide which assets to buy/sell and return instructions in dict format
     #    TODO: instruction format can be perhaps a target value of holdings of each asset (and maybe each risk category in each asset type)
     #    TODO; can include cash buffer to acocunt for slippage. instructions can adjust buffer if it gets too low/high
-    portfolio_changes:dict = portfolio_manager.evaluate()
+    portfolio_targets:dict = portfolio_manager.evaluate(portfolio)
 
     # get strategies to convert instructions to orders (to fulfil the increase/reduction in their respective assets as outlined by instructions)
     
-    orders = EquitiesStrategy(portfolio, broker).get_trades(portfolio_changes['equities']) + \
-             FixedIncomeStrategy(portfolio, broker).get_trades(portfolio_changes['fixed income']) + \
-             ForexStrategy(portfolio, broker).get_trades(portfolio_changes['forex'])
+    orders = EquitiesStrategy(portfolio, broker).get_trades(portfolio_targets['equities']) + \
+             FixedIncomeStrategy(portfolio, broker).get_trades(portfolio_targets['fixed income']) + \
+             ForexStrategy(portfolio, broker).get_trades(portfolio_targets['forex'])
     
     # get trader to execute orders (after cost optimisation) and return successful trades
     #  TODO: cost optimisation must ensure relative 

@@ -18,4 +18,18 @@ class Portfolio:
             total_val += position.current_price * position.qty
         self.value = total_val
 
+    def get_asset_types(self):
+        '''Returns a list of asset types found in the portfolio (equity, fixed_income, or forex)'''
+        asset_types = []
+        for position in self.positions:
+            asset_types += [position.asset_type]
+        return list(set(asset_types))
+    
+    def is_blank(self):
+        if len(self.positions) == 0:
+            return True
+        return False
+
+
+
     

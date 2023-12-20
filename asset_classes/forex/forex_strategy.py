@@ -4,4 +4,6 @@ class ForexStrategy:
         self.broker = broker
 
     def get_trades(self, instructions):
+        
+
         return []

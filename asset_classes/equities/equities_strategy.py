@@ -38,6 +38,7 @@ class EquitiesStrategy:
                 pos_vol[symbol] = measures.volatility(self.broker.get_historical_bar_data(symbol, date.today(), date.today()))
 
         return risk_profile
+        pass
 
 
 '''

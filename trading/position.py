@@ -21,6 +21,9 @@ class Position:
 
     def get_current_price(self):
         return self.current_price
+
+    def get_value(self):
+        return self.current_price * self.qty
     
    
 

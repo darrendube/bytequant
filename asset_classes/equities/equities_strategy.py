@@ -1,26 +1,52 @@
+from utils import measures
+from trading.broker import AlpacaAPI
+from datetime import date, datetime
+import time
+
+
 class EquitiesStrategy:
     def __init__(self, portfolio, broker):
         self.portfolio = portfolio
-        self.broker = broker
+        self.broker: AlpacaAPI = broker
 
     def get_trades(self, instructions):
         target_weights = instructions
 
         # Calculate portfolio's current risk profile in equities
-        # TODO: currently using Volatility as measure of risk. Could use other measures (as listed below) and maybe have a voting system?
-        curr_risk_profile_values = [0.0, 0.0, 0.0]
-        for position in self.portfolio.positions:
-            if position.asset_type=='equity':
-                # calculate risk type of asset
-                pass
+        # TODO: currently using Volatility as measure of risk.
+        #  Could use other utils (as listed below) and maybe have a voting system?
+        curr_risk_profile_values = self.get_risk_profile()
+
         return []
-    
+
+    def get_risk_profile(self):
+        risk_profile = []
+        pos_val = {}
+        for position in self.portfolio.positions:
+            if position.asset_type == 'equity':
+                # assign symbol:value of position pair to dict
+                pos_val[position.symbol] = position.get_value()
+
+            # convert values in dict to proportions
+            tot_val = sum(pos_val.values())
+            pos_proportion = {symbol: val / tot_val for symbol, val in pos_val.items()}
+
+            # calculate volatility for each symbol and store in new dict
+            pos_vol = {}
+            for symbol in pos_proportion.keys():
+                # TODO: find a way to say start=today's date - 50 days or something, and end=today's date. But in datetime format
+                pos_vol[symbol] = measures.volatility(self.broker.get_historical_bar_data(symbol, date.today(), date.today()))
+
+        return risk_profile
+        pass
+
+
 '''
 Measures of risk:
 
  - Volatility: Calculate the historical volatility of the stock, often measured by standard deviation. Higher volatility generally implies higher risk.
 
- - Beta: Evaluate the stock's beta, which measures its sensitivity to market movements. A beta greater than 1 indicates higher volatility compared to the market.
+ - Beta: Evaluate the stock's beta, which utils its sensitivity to market movements. A beta greater than 1 indicates higher volatility compared to the market.
 
  - Historical Performance: Review the stock's historical performance, including drawdowns during market downturns. Consider how the stock has behaved in different market conditions.
 

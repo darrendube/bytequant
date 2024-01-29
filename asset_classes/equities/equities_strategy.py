@@ -10,12 +10,23 @@ class EquitiesStrategy:
         self.broker: AlpacaAPI = broker
 
     def get_trades(self, instructions):
+        '''
+        Given target weights of each risk profile, generate a list of trades to get portfolio to desired risk level
+        TODO: exchange != OTC for low and medium risk, only for high risk
+        '''
         target_weights = instructions
 
         # Calculate portfolio's current risk profile in equities
         # TODO: currently using Volatility as measure of risk.
         #  Could use other utils (as listed below) and maybe have a voting system?
+
         curr_risk_profile_values = self.get_risk_profile()
+
+        assets_list = self.broker.get_all_assets('us_equity')
+        # TODO: loop through assets list checking price history until you come across one that fits volatility profile
+        # TODO: then in later iterations of project, can sort by liquidity first (high liquidity = lower risk, low liquidity = higher risk)
+
+
 
         return []
 
@@ -38,7 +49,7 @@ class EquitiesStrategy:
                 pos_vol[symbol] = measures.volatility(self.broker.get_historical_bar_data(symbol, date.today(), date.today()))
 
         return risk_profile
-        pass
+        
 
 
 '''

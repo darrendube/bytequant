@@ -11,7 +11,9 @@ class Portfolio:
        
 
     def update_value(self):
-        '''Updates the total value of the portfolio'''
+        '''Updates the total value of the portfolio.
+            Probably update it directly from alpaca in the future
+        '''
         total_val = 0
         # TODO: maybe update prices of each position first?
         for position in self.positions:

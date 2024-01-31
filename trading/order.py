@@ -8,7 +8,7 @@ class Order:
         self.symbol = symbol
         self.asset_type = asset_type # equity, forex, fixed income
         self.qty = qty
-        self.order_type = order_type
+        self.order_type = order_type # market, limit
         self.conditions = conditions
         self.limit_price = limit_price
         self.time_in_force = time_in_force # for limit order

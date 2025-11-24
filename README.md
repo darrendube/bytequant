@@ -1,2 +1,2 @@
-# bytequant
+# ByteQuant
 An autonomous trading engine

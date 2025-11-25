@@ -1,0 +1,7 @@
+{
+  "brokers": {
+    "alpaca": {
+      "endpoint": "https://paper-api.alpaca.markets/v2" 
+    }
+  }
+}

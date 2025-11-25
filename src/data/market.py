@@ -1,0 +1,76 @@
+import yfinance as yf
+import pandas as pd
+
+from alpaca.trading.requests import GetAssetsRequest
+from alpaca.trading.enums import AssetClass
+from alpaca.trading.client import TradingClient
+
+from dotenv import load_dotenv
+from pathlib import Path
+import os
+
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
+# handles the loading, cleaning, and storing of market ohlcv data
+
+load_dotenv(dotenv_path=Path('../../config/.env'))
+key = os.getenv("ALPACA_KEY")
+secret = os.getenv("ALPACA_SECRET")
+
+# TODO: first fetch list of available tickers from alpaca
+alpaca_client = TradingClient(key, secret)
+assets = alpaca_client.get_all_assets(GetAssetsRequest(asset_class=AssetClass.US_EQUITY))
+symbols = [asset.symbol for asset in assets if asset.tradable and asset.exchange in ['NYSE', 'NASDAQ', 'ARCA'] and asset.status == 'active']
+
+
+
+# TODO: then download the historical of those tickers from yfinance (don't redownload data that's already there)
+def download_raw_data():
+    os.makedirs('raw', exist_ok=True)
+    count = 0
+    for symbol in symbols:
+        if count % 100 == 0: print(count)
+        count += 1
+        try:
+            file_path = os.path.join('raw', f'{symbol}.csv')
+            if os.path.exists(file_path):
+                # file exists -> check if existing data is up to data
+                existing_df = pd.read_csv(file_path, index_col=0, parse_dates=True)
+                last_date = existing_df.index.max()
+                if last_date >= pd.to_datetime(datetime.today().strftime('%Y-%m-%d')):
+                    continue # up to date
+                
+                # not up to date -> download only missing data
+                start_date = (last_date + timedelta(days=1)).strftime('%Y-%m-%d')
+                new_df=  yf.download(symbol, start=start_date, end=pd.to_datetime(datetime.today().strftime('%Y-%m-%d')), progress=False)
+                if not new_df.empty:
+                    updated_df = pd.concat([existing_df, new_df])
+                    updated_df.to_csv(file_path)
+            else:
+                # file does not exist: download from scratch
+                df = yf.download(symbol, period='20y')
+                if not df.empty:
+                    df.to_csv(file_path)
+                else:
+                    print(f'no data for {symbol}')
+        except Exception as e:
+            print(f'error downloading {symbol}: {e}')
+
+
+# TODO: then clean the data into parquet format and store it
+def convert_to_parquet():
+    os.makedirs('processed', exist_ok=True)
+    cutoff_date = datetime.today() - relativedelta(years=20)
+
+    for file in os.listdir('raw'):
+        if file.endswith('.csv'):
+            csv_path = os.path.join('raw', file)
+            df = pd.read_csv(csv_path, index_col=0, parse_dates=True, skiprows=[1,2])
+            df.index = pd.to_datetime(df.index)
+            df = df[df.index >= cutoff_date]
+
+            parquet_path = os.path.join('processed', file.replace('.csv', '.parquet'))
+            df.to_parquet(parquet_path, engine='pyarrow', index=True)
+
+# download_raw_data()
+convert_to_parquet()

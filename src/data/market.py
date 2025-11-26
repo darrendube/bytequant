@@ -1,5 +1,8 @@
+import numpy as np
 import yfinance as yf
 import pandas as pd
+import logging
+import warnings
 
 from alpaca.trading.requests import GetAssetsRequest
 from alpaca.trading.enums import AssetClass
@@ -14,17 +17,26 @@ from dateutil.relativedelta import relativedelta
 # handles the loading, cleaning, and storing of market ohlcv data
 
 load_dotenv(dotenv_path=Path('../../config/.env'))
+warnings.filterwarnings('ignore')
 key = os.getenv("ALPACA_KEY")
 secret = os.getenv("ALPACA_SECRET")
 
-# TODO: first fetch list of available tickers from alpaca
-alpaca_client = TradingClient(key, secret)
-assets = alpaca_client.get_all_assets(GetAssetsRequest(asset_class=AssetClass.US_EQUITY))
-symbols = [asset.symbol for asset in assets if asset.tradable and asset.exchange in ['NYSE', 'NASDAQ', 'ARCA'] and asset.status == 'active']
+# first fetch list of available tickers from alpaca
 
+#alpaca_client = TradingClient(key, secret)
+#assets = alpaca_client.get_all_assets(GetAssetsRequest(asset_class=AssetClass.US_EQUITY))
+#symbols = [asset.symbol for asset in assets if asset.tradable and asset.exchange in ['NYSE', 'NASDAQ', 'ARCA'] and asset.status == 'active']
 
+# alpaca does not seem to distinguish between stocks and etfs - will need to get list of tickers from another source
+nasdaq_df = pd.read_csv("https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt", sep='|')
+other_df = pd.read_csv("https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt", sep='|')
+other_df.rename(columns={'ACT Symbol': 'Symbol'}, inplace=True)
+symbols_df = pd.concat([nasdaq_df, other_df])[['Symbol', 'Security Name', 'ETF', 'Test Issue']]
+symbols_df= symbols_df[(symbols_df['ETF']=='N') & (symbols_df['Test Issue'] == 'N')]
+symbols = np.array(symbols_df['Symbol'])
 
-# TODO: then download the historical of those tickers from yfinance (don't redownload data that's already there)
+# download the historical prices of those tickers from yfinance (don't redownload data that's already there)
+logging.basicConfig(filename='log.txt', level=logging.INFO)
 def download_raw_data():
     os.makedirs('raw', exist_ok=True)
     count = 0
@@ -34,12 +46,12 @@ def download_raw_data():
         try:
             file_path = os.path.join('raw', f'{symbol}.csv')
             if os.path.exists(file_path):
-                # file exists -> check if existing data is up to data
+                # file exists -> check if existing data is up to date
                 existing_df = pd.read_csv(file_path, index_col=0, parse_dates=True)
-                last_date = existing_df.index.max()
+                last_date = pd.to_datetime(existing_df.index.max())
                 if last_date >= pd.to_datetime(datetime.today().strftime('%Y-%m-%d')):
                     continue # up to date
-                
+
                 # not up to date -> download only missing data
                 start_date = (last_date + timedelta(days=1)).strftime('%Y-%m-%d')
                 new_df=  yf.download(symbol, start=start_date, end=pd.to_datetime(datetime.today().strftime('%Y-%m-%d')), progress=False)
@@ -48,13 +60,14 @@ def download_raw_data():
                     updated_df.to_csv(file_path)
             else:
                 # file does not exist: download from scratch
-                df = yf.download(symbol, period='20y')
+                df = yf.download(symbol, period='20y', progress=False)
                 if not df.empty:
                     df.to_csv(file_path)
                 else:
-                    print(f'no data for {symbol}')
+                    logging.info(f'{symbol}: no data')
         except Exception as e:
-            print(f'error downloading {symbol}: {e}')
+            logging.error(f'{symbol}: download failed -> {e}')
+    logging.info(f'total downloaded: {count}')
 
 
 # TODO: then clean the data into parquet format and store it
@@ -72,5 +85,5 @@ def convert_to_parquet():
             parquet_path = os.path.join('processed', file.replace('.csv', '.parquet'))
             df.to_parquet(parquet_path, engine='pyarrow', index=True)
 
-# download_raw_data()
+download_raw_data()
 convert_to_parquet()

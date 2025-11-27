@@ -58,6 +58,7 @@ def download_raw_data():
                 if not new_df.empty:
                     updated_df = pd.concat([existing_df, new_df])
                     updated_df.to_csv(file_path)
+                del existing_df, new_df, updated_df
             else:
                 # file does not exist: download from scratch
                 df = yf.download(symbol, period='20y', progress=False)

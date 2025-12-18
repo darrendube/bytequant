@@ -8,7 +8,7 @@ class Base(DeclarativeBase):
     pass
 
 class Strategy(Base):
-    __tablename__ = 'strategies'
+    __tablename__ = 'strategy'
     strategy_id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
     status = Column(String, default='active')
@@ -18,9 +18,9 @@ class Strategy(Base):
     positions = relationship("Position", back_populates="strategy")
 
 class Position(Base):
-    __tablename__ = 'positions'
+    __tablename__ = 'position'
     position_id = Column(Integer, primary_key=True)
-    strategy_id = Column(Integer, ForeignKey('strategies.strategy_id'))
+    strategy_id = Column(Integer, ForeignKey('strategy.strategy_id'))
     symbol = Column(String)
     side = Column(String)
     qty = Column(Integer)
@@ -30,9 +30,9 @@ class Position(Base):
     strategy = relationship("Strategy", back_populates="positions")
 
 class Order(Base):
-    __tablename__ = 'orders'
+    __tablename__ = 'order'
     order_id = Column(Integer, primary_key=True)
-    strategy_id = Column(Integer, ForeignKey('strategies.strategy_id'))
+    strategy_id = Column(Integer, ForeignKey('strategy.strategy_id'))
     symbol = Column(String)
     side = Column(String)
     qty = Column(Integer)
@@ -43,10 +43,10 @@ class Order(Base):
     strategy = relationship("Strategy")
 
 class Trade(Base):
-    __tablename__ = 'trades'
+    __tablename__ = 'trade'
     trade_id = Column(Integer, primary_key=True)
-    order_id = Column(Integer, ForeignKey('orders.order_id'))
-    strategy_id = Column(Integer, ForeignKey('strategies.strategy_id'))
+    order_id = Column(Integer, ForeignKey('order.order_id'))
+    strategy_id = Column(Integer, ForeignKey('strategy.strategy_id'))
     symbol = Column(String)
     qty = Column(Integer)
     price = Column(Float)

@@ -34,10 +34,10 @@ class AlpacaClient:
                     portfolio[p.symbol] = qty*self.get_market_price(p.symbol)
                 else:
                     portfolio[p.symbol] = qty
-            return portfolio
+            return pd.Dataframe(list(portfolio.items()), columns=['symbol', 'value_usd'])
         except Exception as e:
             print(f"Error fetching positions: {e}")
-            return {}
+            return pd.DataFrame()
 
     def get_market_price(self, symbol):
         try:
@@ -69,7 +69,7 @@ class AlpacaClient:
             order_params["limit_price"] = limit_price
 
         try:
-            order = self.api.submit_order(**order_params)
+            order = self.client.submit_order(**order_params)
             print(f"SUCCESS: {side.upper()} {qty} {symbol} sent.")
             return order.id
         except Exception as e:

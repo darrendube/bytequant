@@ -4,24 +4,41 @@
 import numpy as np
 import pandas as pd
 import sys
+import time
 sys.path.append('../src/data')
 sys.path.append('../data')
 sys.path.append('../src/risk')
 sys.path.append('../risk')
 from risk import get_current_portfolio
-from db.session import Session
-from db.models import Position
+from src.data.db.session import Session
+from src.data.db.models import Position
+from src.data.db.crud import create_order
 from broker import AlpacaClient as Broker
+
 
 ### HELPERS ###
 '''Given current and target portfolio dfs, generates a "Delta" df - the difference
 between the target and current portfolio'''
 def get_delta(current, target):
-    pass
+    return target.subtract(current, fill_value=0)
 
 '''Given delta df, generates order objects'''
-def gen_orders(delta):
-    pass
+def gen_orders(delta, broker):
+    # NOTE: alpaca does not support longs on fractional shares so will just
+    # round down qty values
+    orders = []
+    for symbol, notional_value in zip(delta['symbol'], delta['value_usd']):
+        # convert notional value to rounded down qty
+        curr_price = broker.get_market_price(symbol)
+        qty = int(notional_value/curr_price)
+        
+        # generate order
+        orders += [{'symbol': symbol, 'qty': qty}] # TODO: missing strategy info
+    return orders
+
+'''Given list of orders, updates Strategy and Order table in DB'''
+def update_db(orders):
+    for order in orders:
 
 
 
@@ -38,10 +55,15 @@ is received from the broker.
 def execute(target_portfolio):
     broker = Broker()
     
-    curr_portfolio = pd.DataFrame()
     delta_df = get_delta(broker.get_current_portfolio(prices=True), target_portfolio)
-    orders: list = gen_orders(delta_df)
+    orders: list = gen_orders(delta_df, broker)
+
+    # put orders in Order db table
+    for order in orders:
+
     
     for order in orders:
         broker.place_order(**order)
-        # TODO: perhaps a short sleep to respect broker rate limits
+        time.sleep(0.5) # to comply with Alpaca 200 reqs/min rate limit
+        print(f'placed order {order}')
+    return True # TODO: perhaps return list of succesful and unsuccesful orders

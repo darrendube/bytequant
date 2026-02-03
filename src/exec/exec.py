@@ -5,15 +5,11 @@ import numpy as np
 import pandas as pd
 import sys
 import time
-sys.path.append('../src/data')
-sys.path.append('../data')
-sys.path.append('../src/risk')
-sys.path.append('../risk')
-from risk import get_current_portfolio
-from src.data.db.session import Session
+from src.risk import risk
+from src.data.db.session import SessionLocal
 from src.data.db.models import Position
-from src.data.db.crud import create_order
-from broker import AlpacaClient as Broker
+from src.data.db import crud 
+from src.exec.broker import AlpacaClient as Broker
 
 
 ### HELPERS ###
@@ -34,12 +30,13 @@ def gen_orders(delta, broker):
         
         # generate order
         orders += [{'symbol': symbol, 'qty': qty}] # TODO: missing strategy info
+
     return orders
 
 '''Given list of orders, updates Strategy and Order table in DB'''
 def update_db(orders):
     for order in orders:
-
+        pass # TODO:
 
 
 ### TODOS ###
@@ -60,6 +57,7 @@ def execute(target_portfolio):
 
     # put orders in Order db table
     for order in orders:
+        pass
 
     
     for order in orders:

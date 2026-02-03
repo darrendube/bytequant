@@ -112,7 +112,7 @@ def get_trades(db_session, strategy_id=None, order_id=None, trade_id=None, symbo
     if strategy_id: query = query.filter(Trade.strategy_id == strategy_id)
     if order_id: query = query.filter(Trade.order_id == order_id)
     if symbol: query = query.filter(Trade.symbol == symbol)
-    if trade_id: query = query.filter(Trade.trade_id = trade_id)
+    if trade_id: query = query.filter(Trade.trade_id == trade_id)
     return query.all()
 
 

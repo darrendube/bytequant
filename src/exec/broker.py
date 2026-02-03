@@ -3,6 +3,7 @@ from alpaca.trading.requests import GetAssetsRequest
 from dotenv import load_dotenv
 from pathlib import Path
 import os
+import pandas as pd
 
 load_dotenv()
 

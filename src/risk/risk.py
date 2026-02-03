@@ -4,10 +4,8 @@
 import numpy as np
 import pandas as pd
 import sys
-sys.path.append('../src/data')
-sys.path.append('../data')
-from db.session import Session
-from db.models import Position
+from src.data.db.session import SessionLocal
+from src.data.db.models import Position
 
 # HELPERS
 def normalise_weights(df):
@@ -22,7 +20,7 @@ def normalise_weights(df):
 '''Returns a DataFrame of the current portfolio (in dollar amounts)'''
 def get_current_portfolio():
     result = None
-    with Session() as session:
+    with SessionLocal() as session:
         result = session.query(Position.strategy_id, Position.symbol, Position.qty, Position.side).all()
     portfolio = pd.DataFrame(result, columns=['strategy_id', 'symbol', 'qty', 'side'])
     # TODO: query yfinance for latest price to convert qty to value_usd
@@ -57,7 +55,7 @@ def gen_new_positions(signals, cash_available: float):
     
 
 '''Outputs a DataFrame of the target portfolio (in dollar amounts)'''
-def get_orders(signals: pd.DataFrame):
+def get_target_portfolio(signals: pd.DataFrame):
     current_portfolio: pd.DataFrame = get_current_portfolio()
     total_equity = current_portfolio['value_usd'].sum()
     expired_positions, net_cash_freed = enforce_risk()

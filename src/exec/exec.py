@@ -16,14 +16,19 @@ from src.exec.broker import AlpacaClient as Broker
 '''Given current and target portfolio dfs, generates a "Delta" df - the difference
 between the target and current portfolio'''
 def get_delta(current, target):
-    return target.subtract(current, fill_value=0)
+    print('TARGET:\n')
+    print(target)
+    print('CURRENT:\n')
+    print(current)
+    target_i, current_i = target.set_index('symbol'), current.set_index('symbol')
+    return target_i.subtract(current_i, fill_value=0)
 
 '''Given delta df, generates order objects'''
 def gen_orders(delta, broker):
     # NOTE: alpaca does not support longs on fractional shares so will just
     # round down qty values
     orders = []
-    for symbol, notional_value in zip(delta['symbol'], delta['value_usd']):
+    for symbol, notional_value in delta['value_usd'].items():
         # convert notional value to rounded down qty
         curr_price = broker.get_market_price(symbol)
         qty = int(notional_value/curr_price)

@@ -1,5 +1,7 @@
 from alpaca.trading.client import TradingClient
-from alpaca.trading.requests import GetAssetsRequest
+from alpaca.data.historical import StockHistoricalDataClient
+from alpaca.data.requests import StockLatestTradeRequest
+from alpaca.trading.requests import (GetAssetsRequest, OrderRequest, )
 from dotenv import load_dotenv
 from pathlib import Path
 import os
@@ -9,12 +11,13 @@ load_dotenv()
 
 class AlpacaClient:
     def __init__(self):
-        self.client = TradingClient(os.getenv("ALPACA_KEY"), os.getenv("ALPACA_SECRET"))
+        self.trading_client = TradingClient(os.getenv("ALPACA_KEY"), os.getenv("ALPACA_SECRET"), paper=True)
+        self.price_client = StockHistoricalDataClient(os.getenv("ALPACA_KEY"), os.getenv("ALPACA_SECRET"))
     
     ### DATA RETRIEVAL ###
 
     def account_summary(self):
-        details = self.client.get_account()
+        details = self.trading_client.get_account()
         return {
             'equity': details.equity,
             'cash': details.cash,
@@ -25,7 +28,7 @@ class AlpacaClient:
     def get_current_portfolio(self, prices=False):
         portfolio = {}
         try:
-            alpaca_positions = self.client.list_positions()
+            alpaca_positions = self.trading_client.get_all_positions()
             for p in alpaca_positions:
                 qty = float(p.qty)
                 price = None
@@ -35,15 +38,16 @@ class AlpacaClient:
                     portfolio[p.symbol] = qty*self.get_market_price(p.symbol)
                 else:
                     portfolio[p.symbol] = qty
-            return pd.Dataframe(list(portfolio.items()), columns=['symbol', 'value_usd'])
+            return pd.DataFrame(list(portfolio.items()), columns=['symbol', 'value_usd'])
         except Exception as e:
             print(f"Error fetching positions: {e}")
             return pd.DataFrame()
 
     def get_market_price(self, symbol):
         try:
-            trade = self.client.get_latest_trade(symbol)
-            return float(trade.price)
+            req = StockLatestTradeRequest(symbol_or_symbols=symbol)
+            trade = self.price_client.get_stock_latest_trade(req)
+            return float(trade[symbol].price)
         except Exception as e:
             print(f"Error fetching price for {symbol}: {e}")
             return None
@@ -70,7 +74,8 @@ class AlpacaClient:
             order_params["limit_price"] = limit_price
 
         try:
-            order = self.client.submit_order(**order_params)
+            req = OrderRequest(**order_params)
+            order = self.trading_client.submit_order(req)
             print(f"SUCCESS: {side.upper()} {qty} {symbol} sent.")
             return order.id
         except Exception as e:
@@ -79,6 +84,6 @@ class AlpacaClient:
 
     ''' Circuit breaker to clear board'''
     def cancel_all_orders(self):
-        self.api.cancel_all_orders()
+        self.trading_client.cancel_all_orders()
 
 

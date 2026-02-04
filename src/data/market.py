@@ -21,6 +21,10 @@ warnings.filterwarnings('ignore')
 key = os.getenv("ALPACA_KEY")
 secret = os.getenv("ALPACA_SECRET")
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+RAW_DIR = os.path.join(BASE_DIR, 'raw')
+PROCESSED_DIR = os.path.join(BASE_DIR, 'processed')
+
 # first fetch list of available tickers from alpaca
 
 #alpaca_client = TradingClient(key, secret)
@@ -37,14 +41,16 @@ symbols = np.array(symbols_df['Symbol'])
 
 # download the historical prices of those tickers from yfinance (don't redownload data that's already there)
 logging.basicConfig(filename='log.txt', level=logging.INFO)
+
+### HELPERS ###
 def download_raw_data():
-    os.makedirs('raw', exist_ok=True)
+    os.makedirs(RAW_DIR, exist_ok=True)
     count = 0
     for symbol in symbols:
         if count % 100 == 0: print(count)
         count += 1
         try:
-            file_path = os.path.join('raw', f'{symbol}.csv')
+            file_path = os.path.join(RAW_DIR, f'{symbol}.csv')
             if os.path.exists(file_path):
                 # file exists -> check if existing data is up to date
                 existing_df = pd.read_csv(file_path, index_col=0, parse_dates=True)
@@ -54,7 +60,8 @@ def download_raw_data():
 
                 # not up to date -> download only missing data
                 start_date = (last_date + timedelta(days=1)).strftime('%Y-%m-%d')
-                new_df=  yf.download(symbol, start=start_date, end=pd.to_datetime(datetime.today().strftime('%Y-%m-%d')), progress=False)
+                if cound % 100 == 0: print(start_date)
+                new_df=  yf.download(symbol, start=start_date, progress=False)
                 if not new_df.empty:
                     updated_df = pd.concat([existing_df, new_df])
                     updated_df.to_csv(file_path)
@@ -73,18 +80,20 @@ def download_raw_data():
 
 # TODO: then clean the data into parquet format and store it
 def convert_to_parquet():
-    os.makedirs('processed', exist_ok=True)
+    os.makedirs(PROCESSED_DIR, exist_ok=True)
     cutoff_date = datetime.today() - relativedelta(years=20)
 
-    for file in os.listdir('raw'):
+    for file in os.listdir(RAW_DIR):
         if file.endswith('.csv'):
-            csv_path = os.path.join('raw', file)
+            csv_path = os.path.join(RAW_DIR, file)
             df = pd.read_csv(csv_path, index_col=0, parse_dates=True, skiprows=[1,2])
             df.index = pd.to_datetime(df.index)
             df = df[df.index >= cutoff_date]
 
-            parquet_path = os.path.join('processed', file.replace('.csv', '.parquet'))
+            parquet_path = os.path.join(PROCESSED_DIR, file.replace('.csv', '.parquet'))
             df.to_parquet(parquet_path, engine='pyarrow', index=True)
 
-download_raw_data()
-convert_to_parquet()
+### MAIN FUNCTION ###
+def load_market_data():
+    download_raw_data()
+    convert_to_parquet()

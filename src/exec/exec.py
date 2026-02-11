@@ -30,7 +30,9 @@ def gen_orders(delta, broker):
     orders = []
     for symbol, notional_value in delta['value_usd'].items():
         # convert notional value to rounded down qty
+        if symbol == 'USD': continue
         curr_price = broker.get_market_price(symbol)
+        if curr_price is None: continue
         qty = int(notional_value/curr_price)
         
         # generate order
@@ -69,4 +71,6 @@ def execute(target_portfolio):
         broker.place_order(**order)
         time.sleep(0.5) # to comply with Alpaca 200 reqs/min rate limit
         print(f'placed order {order}')
+
+        # TODO: if a symbol cannot be sold short, you must cancel the order of the corresponding long stock
     return True # TODO: perhaps return list of succesful and unsuccesful orders

@@ -21,6 +21,8 @@ def get_delta(current, target):
     print('CURRENT:\n')
     print(current)
     target_i, current_i = target.set_index('symbol'), current.set_index('symbol')
+    print('DELTAL \n')
+    print(target_i.subtract(current_i, fill_value=0))
     return target_i.subtract(current_i, fill_value=0)
 
 '''Given delta df, generates order objects'''
@@ -56,21 +58,46 @@ Receives target portfolio, generates orders to convert current portfolio to
 desired portfolio, and terminates when all orders have been filled or an error 
 is received from the broker.
 '''
-def execute(target_portfolio):
+def execute(target_portfolio, strategy_allocation, strategy_risk_params):
     broker = Broker()
     
     delta_df = get_delta(broker.get_current_portfolio(prices=True), target_portfolio)
     orders: list = gen_orders(delta_df, broker)
 
-    # put orders in Order db table
-    for order in orders:
-        pass
+    # populate Strategy table
+    for row in strategy_allocation.groupby('strategy_id')['symbol'].apply(list).reset_index().itertuples(index=False):
+        # compute risk params
+        capital_at_risk, sl, tp = 0.0, None, None
+        for symbol in row.symbol:
+            capital_at_risk += abs(float(strategy_allocation[(strategy_allocation['strategy_id'] == row.strategy_id) & (strategy_allocation['symbol'] == symbol)]['value_usd']))
+        if capital_at_risk != 0.0:
+            sl = strategy_risk_params[strategy_risk_params['strategy_id'] == row.strategy_id]['stop_loss_frac'] * capital_at_risk
+            tp = strategy_risk_params[strategy_risk_params['strategy_id'] == row.strategy_id]['take_profit_frac'] * capital_at_risk
+        
+        params = {
+            'type': 'statarb',
+            'take_profit': tp,
+            'stop_loss': sl
+        }
 
+        crud.create_strategy(strategy_id=row.strategy_id, name=f"Statarb_{'_'.join(row.symbol)}", parameters=params)
     
+    print(strategy_risk_params)
+
     for order in orders:
-        broker.place_order(**order)
+        broker_order_id = broker.place_order(**order)
+        if broker_order_id is not None:
+            side = "BUY" if order['qty'] >= 0 else "SELL"
+            # update Order table
+            db_order = crud.create_order(symbol=order['symbol'], side=side, qty=abs(order['qty']), broker_order_id=str(broker_order_id, ))
+
+            # update StrategyAllocation table
+            #print(' CORR STRAT ALLOC ENTRIES:')
+            #print(strategy_allocation[strategy_allocation['symbol'] == order['symbol']])
+            for row in strategy_allocation[strategy_allocation['symbol'] == order['symbol']].itertuples(index=False):
+                crud.allocate_order_to_strategy(row.strategy_id, db_order.order_id, row.value_usd)
+
         time.sleep(0.5) # to comply with Alpaca 200 reqs/min rate limit
-        print(f'placed order {order}')
 
         # TODO: if a symbol cannot be sold short, you must cancel the order of the corresponding long stock
     return True # TODO: perhaps return list of succesful and unsuccesful orders

@@ -1,11 +1,13 @@
 from src.strategy import (statarb, )
 from src.risk import risk
 from src.exec import exec
+from src.analytics import analytics
 from src.data.market import load_market_data
 from src.data.db import crud
 from src.data.db.models import Base
 from src.data.db.session import engine
 from dotenv import load_dotenv
+import sys
 
 # load env vars
 load_dotenv()
@@ -22,10 +24,10 @@ Base.metadata.create_all(bind=engine)
 
 
 if __name__ == '__main__':
-    load_market_data()
+    if len(sys.argv) == 1:
+        load_market_data()
     signals = statarb.gen_pairs_signals()
-    target_portfolio, strategy_risk_params = risk.get_target_portfolio(signals)
-    # TODO: store stategies and strategy risk params in db
-    success: bool = exec.execute(target_portfolio)
-    # TODO: some logging for analytics
+    target_portfolio, strategy_allocation, strategy_risk_params = risk.get_target_portfolio(signals)
+    success: bool = exec.execute(target_portfolio, strategy_allocation, strategy_risk_params)
+    analytics.update_equity_curve()
 

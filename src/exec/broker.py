@@ -30,14 +30,10 @@ class AlpacaClient:
         try:
             alpaca_positions = self.trading_client.get_all_positions()
             for p in alpaca_positions:
-                qty = float(p.qty)
-                price = None
-                if p.side == 'short':
-                    qty = -qty
                 if prices:
-                    portfolio[p.symbol] = qty*self.get_market_price(p.symbol)
+                    portfolio[p.symbol] = float(p.market_value)
                 else:
-                    portfolio[p.symbol] = qty
+                    portfolio[p.symbol] = float(p.qty)
             return pd.DataFrame(list(portfolio.items()), columns=['symbol', 'value_usd'])
         except Exception as e:
             print(f"Error fetching positions: {e}")

@@ -53,14 +53,14 @@ def download_raw_data():
             file_path = os.path.join(RAW_DIR, f'{symbol}.csv')
             if os.path.exists(file_path):
                 # file exists -> check if existing data is up to date
-                existing_df = pd.read_csv(file_path, index_col=0, parse_dates=True)
+                with open(file_path, 'rb') as f:
+                    existing_df = pd.read_csv(f, index_col=0, parse_dates=True)
                 last_date = pd.to_datetime(existing_df.index.max())
                 if last_date >= pd.to_datetime(datetime.today().strftime('%Y-%m-%d')):
                     continue # up to date
 
                 # not up to date -> download only missing data
                 start_date = (last_date + timedelta(days=1)).strftime('%Y-%m-%d')
-                if cound % 100 == 0: print(start_date)
                 new_df=  yf.download(symbol, start=start_date, progress=False)
                 if not new_df.empty:
                     updated_df = pd.concat([existing_df, new_df])
@@ -86,7 +86,8 @@ def convert_to_parquet():
     for file in os.listdir(RAW_DIR):
         if file.endswith('.csv'):
             csv_path = os.path.join(RAW_DIR, file)
-            df = pd.read_csv(csv_path, index_col=0, parse_dates=True, skiprows=[1,2])
+            with open(csv_path, 'rb') as f:
+                df = pd.read_csv(f, index_col=0, parse_dates=True, skiprows=[1,2])
             df.index = pd.to_datetime(df.index)
             df = df[df.index >= cutoff_date]
 

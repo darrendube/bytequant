@@ -21,15 +21,15 @@ def normalise_weights(df):
 def get_current_portfolio():
     result = None
     with SessionLocal() as session:
-        result = session.query(Position.strategy_id, Position.symbol, Position.qty, Position.side).all()
-    portfolio = pd.DataFrame(result, columns=['strategy_id', 'symbol', 'qty', 'side'])
+        result = session.query(Position.symbol, Position.qty, Position.side).all()
+    portfolio = pd.DataFrame(result, columns=['symbol', 'qty', 'side'])
     # TODO: query yfinance for latest price to convert qty to value_usd
     portfolio['qty'] = np.where(portfolio['side'] == 'long', portfolio['qty'], -portfolio['qty'])
     portfolio['value_usd'] = portfolio['qty'] * 10 # TODO: placeholder; fix this
     # TODO: placeholder - remove this
-    cash = pd.DataFrame([{'strategy_id': '1', 'symbol':'USD', 'value_usd': 934_232.43}])
-    portfolio = pd.concat([portfolio, cash])
-    return portfolio[['strategy_id', 'symbol', 'value_usd']]
+    #cash = pd.DataFrame([{'strategy_id': '1', 'symbol':'USD', 'value_usd': 934_232.43}])
+    #portfolio = pd.concat([portfolio, cash])
+    return portfolio[['symbol', 'value_usd']]
 
      
 
@@ -86,8 +86,13 @@ def get_target_portfolio(signals: pd.DataFrame):
     strategy_risk_mgt['take_profit_frac'] = 0.1
     strategy_risk_mgt['stop_loss_frac'] = -0.05
 
+    # (target) position allocation by strategy
+    strategy_allocation = signals.merge(target_portfolio, on='symbol', how='left')
+    strategy_allocation['value_usd'] = strategy_allocation['weight'] * strategy_allocation['value_usd']
+    strategy_alloation = strategy_allocation[['strategy_id', 'symbol', 'value_usd']]
+
     # TODO: make sure that the above operations don't treat USD as just another asset
 
-    return (target_portfolio, strategy_risk_mgt)
+    return (target_portfolio, strategy_allocation, strategy_risk_mgt)
 
 

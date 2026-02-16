@@ -24,24 +24,20 @@ class Strategy(Base):
     parameters = Column(JSON)
     started_at = Column(TIMESTAMP, default=func.now())
 
-    positions = relationship("Position", back_populates="strategy", cascade="all, delete-orphan")
 
 class Position(Base):
     __tablename__ = 'position'
     position_id = Column(String(22), primary_key=True, default=gen_base64_uuid)
-    strategy_id = Column(String(22), ForeignKey('strategy.strategy_id'))
     symbol = Column(String)
     side = Column(String)
     qty = Column(Integer)
     entry_price = Column(Float)
     status = Column(String, default='active')
 
-    strategy = relationship("Strategy", back_populates="positions")
 
 class Order(Base):
     __tablename__ = 'order'
     order_id = Column(String(22), primary_key=True, default=gen_base64_uuid)
-    strategy_id = Column(String(22), ForeignKey('strategy.strategy_id'))
     symbol = Column(String)
     side = Column(String)
     qty = Column(Integer)
@@ -49,13 +45,11 @@ class Order(Base):
     broker_order_id = Column(String)
     created_at = Column(TIMESTAMP, default=func.now())
 
-    strategy = relationship("Strategy")
 
 class Trade(Base):
     __tablename__ = 'trade'
     trade_id = Column(String(22), primary_key=True, default=gen_base64_uuid)
     order_id = Column(String(22), ForeignKey('order.order_id'))
-    strategy_id = Column(String(22), ForeignKey('strategy.strategy_id'))
     symbol = Column(String)
     qty = Column(Integer)
     price = Column(Float)
@@ -63,7 +57,20 @@ class Trade(Base):
     time = Column(TIMESTAMP)
 
     order = relationship("Order")
-    strategy = relationship("Strategy")
+
+class StrategyAllocation(Base):
+    __tablename__ = 'strategy_allocation'
+    id = Column(String(22), primary_key=True, default=gen_base64_uuid)
+    order_id = Column(String(22), ForeignKey('order.order_id'))
+    strategy_id = Column(String(22), ForeignKey('strategy.strategy_id'))
+    position_id = Column(String(22), ForeignKey('position.position_id'))
+    target_qty = Column(Integer)
+    filled_qty = Column(Integer)
+
+    order = relationship('Order')
+    strategy = relationship('Strategy')
+    position = relationship('Position')
+
 
 class EquityCurve(Base):
     __tablename__ = 'equity_curve'

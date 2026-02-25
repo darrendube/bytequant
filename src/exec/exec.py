@@ -69,7 +69,7 @@ def execute(target_portfolio, strategy_allocation, strategy_risk_params):
         # compute risk params
         capital_at_risk, sl, tp = 0.0, None, None
         for symbol in row.symbol:
-            capital_at_risk += abs(float(strategy_allocation[(strategy_allocation['strategy_id'] == row.strategy_id) & (strategy_allocation['symbol'] == symbol)]['value_usd']))
+            capital_at_risk += abs(float(strategy_allocation[(strategy_allocation['strategy_id'] == row.strategy_id) & (strategy_allocation['symbol'] == symbol)]['value_usd'].item()))
         if capital_at_risk != 0.0:
             sl = strategy_risk_params[strategy_risk_params['strategy_id'] == row.strategy_id]['stop_loss_frac'] * capital_at_risk
             tp = strategy_risk_params[strategy_risk_params['strategy_id'] == row.strategy_id]['take_profit_frac'] * capital_at_risk

@@ -6,6 +6,7 @@ import pandas as pd
 import sys
 from src.data.db.session import SessionLocal
 from src.data.db.models import Position
+from src.exec.broker import AlpacaClient as Broker
 
 # HELPERS
 def normalise_weights(df):
@@ -56,10 +57,14 @@ def gen_new_positions(signals, cash_available: float):
 
 '''Outputs a DataFrame of the target portfolio (in dollar amounts)'''
 def get_target_portfolio(signals: pd.DataFrame):
-    current_portfolio: pd.DataFrame = get_current_portfolio()
-    total_equity = current_portfolio['value_usd'].sum()
+    portfolio_details = Broker().account_summary() 
+    #current_portfolio: pd.DataFrame = get_current_portfolio()
+    current_portfolio = Broker().get_current_portfolio(prices=True)
+    total_equity = float(portfolio_details['equity'])
     expired_positions, net_cash_freed = enforce_risk()
-    cash_available: float = net_cash_freed + current_portfolio[current_portfolio['symbol'] == 'USD']['value_usd'].sum()
+    cash_available: float = float(portfolio_details['buying_power']) #current_portfolio[current_portfolio['symbol'] == 'USD']['value_usd'].sum()
+    # NOTE: in cash available above removed net cash freed - cannot rely on this since we can't be guaranteed
+    # that the trades that will free up this cash will occur before the trades that use the cash up 
 
     # limit the percentage of the total portfolio value that can be traded on a single day to 5%
     # i.e. cap the available cash to 5% of total equity

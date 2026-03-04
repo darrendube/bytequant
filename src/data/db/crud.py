@@ -1,5 +1,11 @@
 from src.data.db.session import SessionLocal
 from src.data.db.models import Strategy, Position, Order, Trade, EquityCurve, StrategyAllocation
+from sqlalchemy.inspection import inspect
+
+### HELPERS ###
+'''convert SQLAlchemy object to a dict'''
+def to_dict(obj):
+    return {c.key: getattr(obj, c.key) for c in inspect(obj).mapper.column_attrs}
 
 # session manager wrapper function
 def _with_session(crud_func):
@@ -33,9 +39,10 @@ def create_strategy(db_session, strategy_id=None, name=None, status=None, parame
     # add to session
     strategy = Strategy(**fields)
     db_session.add(strategy)
+    _strategy = to_dict(strategy)
     db_session.flush()  # optional: ensure DB assigns defaults like timestamp
 
-    return strategy
+    return _strategy
 
 @_with_session
 def get_strategies(db_session, strategy_id=None):
@@ -80,8 +87,9 @@ def create_order(db_session, symbol, side, qty, broker_order_id=None, order_id=N
 
     order = Order(**fields)
     db_session.add(order)
+    _order = to_dict(order)
     db_session.flush()
-    return order
+    return _order
 
 @_with_session
 def get_orders(db_session, order_id=None, broker_order_id=None, symbol=None, side=None, status=None):

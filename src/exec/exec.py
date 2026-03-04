@@ -63,6 +63,8 @@ def execute(target_portfolio, strategy_allocation, strategy_risk_params):
     
     delta_df = get_delta(broker.get_current_portfolio(prices=True), target_portfolio)
     orders: list = gen_orders(delta_df, broker)
+    print("ORDERS:")
+    print(orders)
 
     # populate Strategy table
     for row in strategy_allocation.groupby('strategy_id')['symbol'].apply(list).reset_index().itertuples(index=False):
@@ -76,8 +78,8 @@ def execute(target_portfolio, strategy_allocation, strategy_risk_params):
         
         params = {
             'type': 'statarb',
-            'take_profit': tp,
-            'stop_loss': sl
+            'take_profit': tp.iloc[0],
+            'stop_loss': sl.iloc[0]
         }
 
         crud.create_strategy(strategy_id=row.strategy_id, name=f"Statarb_{'_'.join(row.symbol)}", parameters=params)
@@ -95,7 +97,7 @@ def execute(target_portfolio, strategy_allocation, strategy_risk_params):
             #print(' CORR STRAT ALLOC ENTRIES:')
             #print(strategy_allocation[strategy_allocation['symbol'] == order['symbol']])
             for row in strategy_allocation[strategy_allocation['symbol'] == order['symbol']].itertuples(index=False):
-                crud.allocate_order_to_strategy(row.strategy_id, db_order.order_id, row.value_usd)
+                crud.allocate_order_to_strategy(row.strategy_id, db_order['order_id'], row.value_usd)
 
         time.sleep(0.5) # to comply with Alpaca 200 reqs/min rate limit
 

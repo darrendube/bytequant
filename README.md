@@ -3,7 +3,7 @@
 # ByteQuant
 
 ### Project Overview:
-ByteQuant is an autonomous trading engine designed to identify and exploit statistical arbitrage (and other) strategies in US equities.
+ByteQuant is an autonomous trading engine designed to identify and exploit statistical arbitrage (and other) opportunities in US equities.
 
 
 ### (Proposed) Architecture:

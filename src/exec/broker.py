@@ -1,7 +1,7 @@
 from alpaca.trading.client import TradingClient
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockLatestTradeRequest
-from alpaca.trading.requests import (GetAssetsRequest, OrderRequest, )
+from alpaca.trading.requests import (GetAssetsRequest, OrderRequest, GetOrderByIdRequest)
 from dotenv import load_dotenv
 from pathlib import Path
 import os
@@ -48,7 +48,7 @@ class AlpacaClient:
             print(f"Error fetching price for {symbol}: {e}")
             return None
 
-    ### ORDER EXECUTION ###
+    ### ORDERS ###
 
     def place_order(self, symbol, qty, order_type="market", limit_price=None):
         # NOTE: negative qty = sell
@@ -77,6 +77,9 @@ class AlpacaClient:
         except Exception as e:
             print(f"FAILURE: Could not place order for {symbol}: {e}")
             return None
+    
+    def get_order_by_id(self, id):
+        return self.trading_client.get_order_by_id(id)
 
     ''' Circuit breaker to clear board'''
     def cancel_all_orders(self):

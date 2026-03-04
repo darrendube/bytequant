@@ -91,7 +91,7 @@ def execute(target_portfolio, strategy_allocation, strategy_risk_params):
         if broker_order_id is not None:
             side = "BUY" if order['qty'] >= 0 else "SELL"
             # update Order table
-            db_order = crud.create_order(symbol=order['symbol'], side=side, qty=abs(order['qty']), broker_order_id=str(broker_order_id, ))
+            db_order = crud.create_order(symbol=order['symbol'], side=side, qty=abs(order['qty']), broker_order_id=str(broker_order_id, ), status="open")
 
             # update StrategyAllocation table
             #print(' CORR STRAT ALLOC ENTRIES:')

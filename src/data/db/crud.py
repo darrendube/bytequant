@@ -54,11 +54,13 @@ def get_strategies(db_session, strategy_id=None):
 
 ### POSITION CRUD ###
 @_with_session
-def create_position(db_session, symbol, side, qty, entry_price, status=None, position_id=None):
+def add_position(db_session, symbol, side, qty, entry_price, status=None, position_id=None):
     # build dict of fields
     fields = {'symbol': symbol, 'side': side, 'qty': qty, 'entry_price': entry_price}
     if position_id is not None: fields['position_id'] = position_id
     if status is not None: fields['status'] = status
+
+    # TODO: if entry under this symbol exists, DO NOT create a new entry, simply update the existing entry
 
     # add to session
     position = Position(**fields)
@@ -101,6 +103,13 @@ def get_orders(db_session, order_id=None, broker_order_id=None, symbol=None, sid
     if broker_order_id: query = query.filter(Order.broker_order_id == broker_order_id)
     return query.all()
 
+@_with_session
+def update_order(db_session, order_id, new_status):
+    order = db_session.get(Order, order_id)
+    order.status = new_status
+    db_session.commit()
+
+
 
 ### TRADE CRUD ###
 @_with_session
@@ -134,7 +143,7 @@ def allocate_order_to_strategy(db_session, strategy_id, order_id, target_qty):
 
 @_with_session
 def allocate_trade_to_strategy(db_session, allocation_id, filled_qty):
-    allocation = session.get(StrategyAllocation, allocation_id)
+    allocation = db_session.get(StrategyAllocation, allocation_id)
     allocation.filled_qty = filled_qty
     db_session.commit()
 

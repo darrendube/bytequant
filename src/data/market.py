@@ -11,6 +11,7 @@ from alpaca.trading.client import TradingClient
 from dotenv import load_dotenv
 from pathlib import Path
 import os
+import gc
 
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -61,20 +62,21 @@ def download_raw_data():
 
                 # not up to date -> download only missing data
                 start_date = (last_date + timedelta(days=1)).strftime('%Y-%m-%d')
-                new_df=  yf.download(symbol, start=start_date, progress=False)
+                new_df=  yf.download(symbol, start=start_date, progress=False, threads=False)
                 if not new_df.empty:
                     updated_df = pd.concat([existing_df, new_df])
                     updated_df.to_csv(file_path)
                 del existing_df, new_df, updated_df
             else:
                 # file does not exist: download from scratch
-                df = yf.download(symbol, period='20y', progress=False)
+                df = yf.download(symbol, period='20y', progress=False, threads=False)
                 if not df.empty:
                     df.to_csv(file_path)
                 else:
                     logging.info(f'{symbol}: no data')
         except Exception as e:
             logging.error(f'{symbol}: download failed -> {e}')
+    gc.collect()
     logging.info(f'total downloaded: {count}')
 
 
@@ -82,17 +84,21 @@ def download_raw_data():
 def convert_to_parquet():
     os.makedirs(PROCESSED_DIR, exist_ok=True)
     cutoff_date = datetime.today() - relativedelta(years=20)
+    
+    files = [f for f in os.listdir(RAW_DIR) if f.endswith('.csv')]
 
-    for file in os.listdir(RAW_DIR):
-        if file.endswith('.csv'):
-            csv_path = os.path.join(RAW_DIR, file)
-            with open(csv_path, 'rb') as f:
-                df = pd.read_csv(f, index_col=0, parse_dates=True, skiprows=[1,2])
-            df.index = pd.to_datetime(df.index)
-            df = df[df.index >= cutoff_date]
+    for i, file in enumerate(files):
+        csv_path = os.path.join(RAW_DIR, file)
+        df = pd.read_csv(csv_path, index_col=0, parse_dates=True, skiprows=[1,2])
+        if df.empty: continue
+        df.index = pd.to_datetime(df.index)
+        df = df[df.index >= cutoff_date]
 
-            parquet_path = os.path.join(PROCESSED_DIR, file.replace('.csv', '.parquet'))
-            df.to_parquet(parquet_path, engine='pyarrow', index=True)
+        parquet_path = os.path.join(PROCESSED_DIR, file.replace('.csv', '.parquet'))
+        df.to_parquet(parquet_path, engine='pyarrow', index=True)
+        del df
+        if i%100==0: gc.collect()
+
 
 ### MAIN FUNCTION ###
 def load_market_data():

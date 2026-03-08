@@ -101,7 +101,9 @@ def get_orders(db_session, order_id=None, broker_order_id=None, symbol=None, sid
     if status: query = query.filter(Order.status == status)
     if order_id: query = query.filter(Order.order_id == order_id)
     if broker_order_id: query = query.filter(Order.broker_order_id == broker_order_id)
-    return query.all()
+
+    _query_all = [to_dict(order) for order in query.all()]
+    return _query_all
 
 @_with_session
 def update_order(db_session, order_id, new_status):

@@ -36,8 +36,10 @@ if __name__ == '__main__':
         "\n\t2: test mode (runs normally but without loading price data first)"
         "\n\nExample: python3 -m src.main 0\n")
     
-    if sys.argv[1] == 1:
-        pass # TODO: some logging mode of some sort
+    if sys.argv[1] == "1":
+        print('updating filled orders')
+        analytics.update_filled_orders()
+        # TODO: some logging mode of some sort
 
     if sys.argv[1] == "0":
         load_market_data()

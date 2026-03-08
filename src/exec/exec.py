@@ -37,6 +37,11 @@ def gen_orders(delta, broker):
         if curr_price is None: continue
         qty = int(notional_value/curr_price)
         
+        # skip orders with zero quantity
+        if abs(qty) < 0.001: continue
+
+        # TODO: perhaps reconcile expected qty to actual qty (when closing shorts)
+
         # generate order
         orders += [{'symbol': symbol, 'qty': qty}] # TODO: missing strategy info
 
@@ -83,19 +88,16 @@ def execute(target_portfolio, strategy_allocation, strategy_risk_params):
         }
 
         crud.create_strategy(strategy_id=row.strategy_id, name=f"Statarb_{'_'.join(row.symbol)}", parameters=params)
-    
-    print(strategy_risk_params)
 
     for order in orders:
+
         broker_order_id = broker.place_order(**order)
         if broker_order_id is not None:
             side = "BUY" if order['qty'] >= 0 else "SELL"
             # update Order table
-            db_order = crud.create_order(symbol=order['symbol'], side=side, qty=abs(order['qty']), broker_order_id=str(broker_order_id, ))
+            db_order = crud.create_order(symbol=order['symbol'], side=side, qty=abs(order['qty']), broker_order_id=str(broker_order_id, ), status="open")
 
             # update StrategyAllocation table
-            #print(' CORR STRAT ALLOC ENTRIES:')
-            #print(strategy_allocation[strategy_allocation['symbol'] == order['symbol']])
             for row in strategy_allocation[strategy_allocation['symbol'] == order['symbol']].itertuples(index=False):
                 crud.allocate_order_to_strategy(row.strategy_id, db_order['order_id'], row.value_usd)
 

@@ -18,7 +18,7 @@ class Base(DeclarativeBase):
 
 class Strategy(Base):
     __tablename__ = 'strategy'
-    strategy_id = Column(String(22), primary_key=True, default=gen_base64_uuid)
+    strategy_id = Column(String(100), primary_key=True, default=gen_base64_uuid)
     name = Column(String, nullable=False)
     status = Column(String, default='active')
     parameters = Column(JSON)
@@ -27,7 +27,7 @@ class Strategy(Base):
 
 class Position(Base):
     __tablename__ = 'position'
-    position_id = Column(String(22), primary_key=True, default=gen_base64_uuid)
+    position_id = Column(String(100), primary_key=True, default=gen_base64_uuid)
     symbol = Column(String)
     side = Column(String)
     qty = Column(Integer)
@@ -37,7 +37,7 @@ class Position(Base):
 
 class Order(Base):
     __tablename__ = 'order'
-    order_id = Column(String(22), primary_key=True, default=gen_base64_uuid)
+    order_id = Column(String(100), primary_key=True, default=gen_base64_uuid)
     symbol = Column(String)
     side = Column(String)
     qty = Column(Integer)
@@ -48,8 +48,8 @@ class Order(Base):
 
 class Trade(Base):
     __tablename__ = 'trade'
-    trade_id = Column(String(22), primary_key=True, default=gen_base64_uuid)
-    order_id = Column(String(22), ForeignKey('order.order_id'))
+    trade_id = Column(String(100), primary_key=True, default=gen_base64_uuid)
+    order_id = Column(String(100), ForeignKey('order.order_id'))
     symbol = Column(String)
     qty = Column(Integer)
     price = Column(Float)
@@ -60,10 +60,10 @@ class Trade(Base):
 
 class StrategyAllocation(Base):
     __tablename__ = 'strategy_allocation'
-    id = Column(String(22), primary_key=True, default=gen_base64_uuid)
-    order_id = Column(String(22), ForeignKey('order.order_id'))
-    strategy_id = Column(String(22), ForeignKey('strategy.strategy_id'))
-    position_id = Column(String(22), ForeignKey('position.position_id'))
+    id = Column(String(100), primary_key=True, default=gen_base64_uuid)
+    order_id = Column(String(100), ForeignKey('order.order_id'))
+    strategy_id = Column(String(100), ForeignKey('strategy.strategy_id'))
+    position_id = Column(String(100), ForeignKey('position.position_id'))
     target_qty = Column(Integer)
     filled_qty = Column(Integer)
 
@@ -74,7 +74,7 @@ class StrategyAllocation(Base):
 
 class EquityCurve(Base):
     __tablename__ = 'equity_curve'
-    id = Column(String(22), primary_key=True, default=gen_base64_uuid)
+    id = Column(String(100), primary_key=True, default=gen_base64_uuid)
     timestamp = Column(TIMESTAMP, default=func.now())
     total_value = Column(Float)
     cash = Column(Float)

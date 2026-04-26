@@ -16,13 +16,7 @@ from src.exec.broker import AlpacaClient as Broker
 '''Given current and target portfolio dfs, generates a "Delta" df - the difference
 between the target and current portfolio'''
 def get_delta(current, target):
-    print('TARGET:\n')
-    print(target)
-    print('CURRENT:\n')
-    print(current)
     target_i, current_i = target.set_index('symbol'), current.set_index('symbol')
-    print('DELTAL \n')
-    print(target_i.subtract(current_i, fill_value=0))
     return target_i.subtract(current_i, fill_value=0)
 
 '''Given delta df, generates order objects'''
@@ -68,23 +62,29 @@ def execute(target_portfolio, strategy_allocation, strategy_risk_params):
     
     delta_df = get_delta(broker.get_current_portfolio(prices=True), target_portfolio)
     orders: list = gen_orders(delta_df, broker)
-    print("ORDERS:")
-    print(orders)
+    print(f"Generated {len(orders)} orders.")
 
     # populate Strategy table
     for row in strategy_allocation.groupby('strategy_id')['symbol'].apply(list).reset_index().itertuples(index=False):
         # compute risk params
-        capital_at_risk, sl, tp = 0.0, None, None
+        capital_at_risk = 0.0
         for symbol in row.symbol:
-            capital_at_risk += abs(float(strategy_allocation[(strategy_allocation['strategy_id'] == row.strategy_id) & (strategy_allocation['symbol'] == symbol)]['value_usd'].item()))
-        if capital_at_risk != 0.0:
-            sl = strategy_risk_params[strategy_risk_params['strategy_id'] == row.strategy_id]['stop_loss_frac'] * capital_at_risk
-            tp = strategy_risk_params[strategy_risk_params['strategy_id'] == row.strategy_id]['take_profit_frac'] * capital_at_risk
-        
+            capital_at_risk += abs(float(strategy_allocation[
+                (strategy_allocation['strategy_id'] == row.strategy_id) &
+                (strategy_allocation['symbol'] == symbol)
+            ]['value_usd'].item()))
+
+        risk_row = strategy_risk_params.loc[strategy_risk_params['strategy_id'] == row.strategy_id]
+        if risk_row.empty:
+            raise ValueError(f"Missing risk parameters for strategy_id={row.strategy_id}")
+
+        tp = float(risk_row['take_profit_frac'].iloc[0]) * capital_at_risk
+        sl = float(risk_row['stop_loss_frac'].iloc[0]) * capital_at_risk
+
         params = {
             'type': 'statarb',
-            'take_profit': tp.iloc[0],
-            'stop_loss': sl.iloc[0]
+            'take_profit': tp,
+            'stop_loss': sl
         }
 
         crud.create_strategy(strategy_id=row.strategy_id, name=f"Statarb_{'_'.join(row.symbol)}", parameters=params)

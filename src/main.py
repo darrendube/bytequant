@@ -7,7 +7,7 @@ from src.data.db import crud
 from src.data.db.models import Base
 from src.data.db.session import engine
 from dotenv import load_dotenv
-import sys
+import argparse
 
 # load env vars
 load_dotenv()
@@ -22,33 +22,36 @@ Base.metadata.create_all(bind=engine)
 #  4. send output of risk (target portfolio) to exec module (which sends orders to brokers)
 #  5. some logging for analytics along the way
 
-# running modes
-# 0: normal mode - load data, gen orders, execute, etc
-# 1: logging/DB update mode - run only to update DB tables (esp. Position after orders have been filled) + analytics (maybe) - no trading
-# 2: test mode - run normally but without updating local historical data store - ONLY FOR TESTING
+def main():
+    parser = argparse.ArgumentParser(description="ByteQuant Trading Engine")
+    parser.add_argument(
+        "mode",
+        choices=["normal", "logging", "test"],
+        help="Operating mode: normal (full run), logging (update DB), test (skip data load)"
+    )
+    args = parser.parse_args()
 
+    if args.mode == "logging":
+        print("Updating filled orders...")
+        analytics.update_filled_orders()
+        print("Logging update complete.")
+
+    if args.mode == "normal":
+        print("Loading market data...")
+        load_market_data()
+        print("Market data loaded.")
+    
+    if args.mode in ["normal", "test"]:    
+        print("Generating trading signals...")
+        signals = statarb.gen_pairs_signals()
+        print("Calculating target portfolio...")
+        target_portfolio, strategy_allocation, strategy_risk_params = risk.get_target_portfolio(signals)
+        print("Executing orders...")
+        success: bool = exec.execute(target_portfolio, strategy_allocation, strategy_risk_params)
+        print("Updating analytics...")
+        analytics.update_equity_curve()
+        print("Run complete.")
 
 if __name__ == '__main__':
-    if len(sys.argv) == 1 or sys.argv[1] not in ["0", "1", "2"]:
-        sys.exit("Missing mode argument: " \
-        "\n\t0: normal mode " \
-        "\n\t1: logging/DB update mode " \
-        "\n\t2: test mode (runs normally but without loading price data first)"
-        "\n\nExample: python3 -m src.main 0\n")
-    
-    if sys.argv[1] == "1":
-        print('updating filled orders')
-        analytics.update_filled_orders()
-        # TODO: some logging mode of some sort
-
-    if sys.argv[1] == "0":
-        load_market_data()
-    
-    if sys.argv[1] in ["0", "2"]:    
-        signals = statarb.gen_pairs_signals()
-        target_portfolio, strategy_allocation, strategy_risk_params = risk.get_target_portfolio(signals)
-        success: bool = exec.execute(target_portfolio, strategy_allocation, strategy_risk_params)
-        analytics.update_equity_curve()
-
-    sys.exit(0)
+    main()
 

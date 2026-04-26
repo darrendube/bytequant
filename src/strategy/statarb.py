@@ -126,9 +126,7 @@ def gen_pairs_signals(bandwidth=0.3, alpha=0.05):
             'symbol': pair.symbol_2,
             'weight': pair.weight if pair.upper else -pair.weight
         }]
-    print("SIGNALS: ")
-    print(pd.DataFrame(signals))
-
+    print(f"Generated {len(signals)} signals from {len(flagged_pairs)} flagged pairs.")
     return pd.DataFrame(signals)
 
 

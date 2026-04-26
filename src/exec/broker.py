@@ -72,10 +72,10 @@ class AlpacaClient:
         try:
             req = OrderRequest(**order_params)
             order = self.trading_client.submit_order(req)
-            print(f"SUCCESS: {side.upper()} {qty} {symbol} sent.")
+            print(f"Order placed: {side.upper()} {qty} {symbol}")
             return order.id
         except Exception as e:
-            print(f"FAILURE: Could not place order for {symbol}: {e}")
+            print(f"Failed to place order for {symbol}: {e}")
             return None
     
     def get_order_by_id(self, id):

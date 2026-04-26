@@ -57,7 +57,12 @@ def gen_new_positions(signals, cash_available: float):
 
 '''Outputs a DataFrame of the target portfolio (in dollar amounts)'''
 def get_target_portfolio(signals: pd.DataFrame):
-    portfolio_details = Broker().account_summary() 
+    try:
+        portfolio_details = Broker().account_summary()
+    except Exception as e:
+        print(f"Error fetching account summary from broker: {e}")
+        raise RuntimeError("Unable to connect to broker API. Check internet connection and API keys.") from e
+    
     #current_portfolio: pd.DataFrame = get_current_portfolio()
     current_portfolio = Broker().get_current_portfolio(prices=True)
     total_equity = float(portfolio_details['equity'])
@@ -85,7 +90,6 @@ def get_target_portfolio(signals: pd.DataFrame):
         target_portfolio.loc[mask, 'value_usd'], 
         total_equity*0.05
     )
-    print(target_portfolio)
     # strategy-level risk limits for new positions: -5% stop loss, 10% take profit for a start
     strategy_risk_mgt = pd.DataFrame(new_positions['strategy_id'].unique(), columns=['strategy_id'])
     strategy_risk_mgt['take_profit_frac'] = 0.1
@@ -94,7 +98,15 @@ def get_target_portfolio(signals: pd.DataFrame):
     # (target) position allocation by strategy
     strategy_allocation = signals.merge(target_portfolio, on='symbol', how='left')
     strategy_allocation['value_usd'] = strategy_allocation['weight'] * strategy_allocation['value_usd']
-    strategy_alloation = strategy_allocation[['strategy_id', 'symbol', 'value_usd']]
+    strategy_allocation = strategy_allocation[['strategy_id', 'symbol', 'value_usd']]
+
+    # Validate strategy_allocation
+    if strategy_allocation.empty:
+        raise ValueError("strategy_allocation is empty - no valid signals or target portfolio positions")
+    if strategy_allocation['strategy_id'].isna().any():
+        raise ValueError("strategy_allocation contains NaN strategy_id values")
+    if strategy_allocation['value_usd'].isna().any():
+        raise ValueError("strategy_allocation contains NaN value_usd values")
 
     # TODO: make sure that the above operations don't treat USD as just another asset
 
